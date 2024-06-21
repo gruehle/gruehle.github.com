@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Playback Speed</title>
+</head>
+<body>
+    <style>
+        button {
+            font-size: 1.1em;
+        }
+    </style>
+    <h3>Bug Description</h3>
+    <p>playbackRate does not work correctly when audio is routed through an AudioContext</p>
+    <h3>Steps to repro:</h3>
+    <ol>
+        <li>Press Play button. Sound will play back.</li>
+        <li>Press some of the Speed buttons. Sound playback speed will adjust.</li>
+        <li>Press Pause</li>
+        <li>Check the "Use AudioContext" checkbox.</li>
+        <li>Repeat steps 1 and 2</li>
+    </ol>
+    <p>Result: sound playback is garbled and speed is incorrect.</p>
+    <input type="checkbox" id="cb_use_audiocontext">Use AudioContext</input>
+    <br><br/>
+    <button id="btn_play_pause">Play</button>
+    <br/><br/>
+    <p>Speed</p>
+    <button id="btn_05_speed">0.5x</button>
+    <button id="btn_1_speed">1x</button>
+    <button id="btn_2_speed">2x</button>
+<script>
+    const audioSrc = "./groovy-ambient-funk.mp3";
+    let audio = new Audio(audioSrc);
+    let audioContext, audioNode;
+
+    document.getElementById("cb_use_audiocontext").addEventListener("change", e => {
+        if (e.target.checked) {
+            audioContext = new AudioContext();
+            audioNode = audioContext.createMediaElementSource(audio);
+            audioNode.connect(audioContext.destination);
+        } else {
+            audioNode.disconnect();
+            audioContext.close();
+            audioNode = undefined;
+            audioContext = undefined;
+            audio = new Audio(audioSrc)
+        }
+    });
+
+    document.getElementById("btn_play_pause").addEventListener("click", e => {
+        if (audio.paused) {
+            audioContext?.resume();
+            audio.play();
+            e.target.innerText = "Pause";
+        } else {
+            audio.pause();
+            audioContext?.suspend();
+            audio.currentTime = 0;
+            e.target.innerText = "Play";
+        }
+    });
+
+    document.getElementById("btn_05_speed").addEventListener("click", e => {
+        audio.defaultPlaybackRate = audio.playbackRate = 0.5;
+    });
+
+    document.getElementById("btn_1_speed").addEventListener("click", e => {
+        audio.defaultPlaybackRate = audio.playbackRate = 1;
+    });
+
+    document.getElementById("btn_2_speed").addEventListener("click", e => {
+        audio.defaultPlaybackRate = audio.playbackRate = 2;
+    });
+</script>
+</body>
+</html>
