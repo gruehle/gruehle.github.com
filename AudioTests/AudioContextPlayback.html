@@ -13,8 +13,6 @@ button {
 <p>To see the problem play/pause the audio, switch to another tab in Safari and then switch back and try to play.</p>
 <hr>
 <p><button id="play-btn" type="button">Play</button> <button id="pause-btn" type="button">Pause</button></p>
-<p><button id="resetcontext-btn" type="button">Reset Audio Context</button></p>
-<p><button id="reset-btn" type="button">Reset</button></p>
 <p id="outputP"></p>
 <script>
 
@@ -182,11 +180,6 @@ document.getElementById("pause-btn")
                 audioContext.resume();
             }
             audio.pause();
-        });
-
-document.getElementById("resetcontext-btn")
-    .addEventListener("click", function(e) {
-            resetAudioContext();
         });
 
 resetAudio();
