@@ -1,0 +1,211 @@
+<html>
+<head>
+<meta name = "viewport" content = "width = device-width">
+<style>
+button {
+    font-size: 20px;
+}
+</style>
+</head>
+<body>
+    <audio src="2sec.mp3" type="audio/mpeg"></audio>
+<p>This test case is set up to play/pause an audio element that is attached to an AudioContext.</p>
+<p>To see the problem play/pause the audio, switch to another tab in Safari and then switch back and try to play.</p>
+<hr>
+<p><button id="play-btn" type="button">Play</button> <button id="pause-btn" type="button">Pause</button></p>
+<p><button id="resetcontext-btn" type="button">Reset Audio Context</button></p>
+<p><button id="reset-btn" type="button">Reset</button></p>
+<p id="outputP"></p>
+<script>
+
+function log(msg) {
+    console.log("%c"+msg, "color:white;background-color:black;padding:.5em;");
+    document.getElementById("outputP").innerText = msg;
+}
+
+// Our app actually uses audio elements, but the playback issue
+// exists when using audio objects created via the Audio class too.
+
+let useAudioElement = true;
+
+// Our app sets up the following connection relationships:
+//
+//    audio --> MediaElementSource --> GainNode --> AudioContext
+//
+// but the playback issue can be reproduced without the GainNode:
+//
+//    audio --> MediaElementSource --> AudioContext
+//
+// This test case makes use of a GainNode optional:
+
+let useGainNode = false;
+
+let audio;
+let audioContext;
+let audioSourceNode;
+let gainNode;
+
+function initAudio() {
+    if (useAudioElement) {
+        audio = document.createElement("audio");
+        audio.preload = "auto";
+        audio.src = "groovy-ambient-funk.mp3";
+        audio.crossOrigin = "anonymous";
+    } else {
+        audio = new Audio("groovy-ambient-funk.mp3");
+    }
+
+    // Set up some event listeners on the audio object so we can
+    // see in the console what events it is dispatching at any given time.
+
+    [
+      "abort",
+      "canplay",
+      "canplaythrough",
+      "durationchange",
+      "emptied",
+      "encrypted",
+      "ended",
+      "error",
+      "loadeddata",
+      "loadedmetadata",
+      "loadstart",
+      "pause",
+      "play",
+      "playing",
+      "progress",
+      "ratechange",
+      "seeked",
+      "seeking",
+      "stalled",
+      "suspend",
+      "timeupdate",
+      "volumechange",
+      "waiting",
+    ].forEach(function(eventName) {
+            audio.addEventListener(eventName, function(e) {
+                    log(`Audio: ${e.type} [${e.target.currentTime}]`);
+                });
+        });
+}
+
+function resetAudio() {
+    disconnectFromAudioContext();
+    initAudio();
+    connectToAudioContext(audio);
+}
+
+// Callback for dynamically disconnecting any web audio api connections
+// we may have set up.
+
+function disconnectFromAudioContext() {
+    if (audioContext) {
+        log("Suspending audioContext");
+        audioContext.suspend();
+        audioContext = null;
+    }
+
+    if (audioSourceNode) {
+        log("Disconnecting audioSourceNode");
+        audioSourceNode.disconnect();
+        audioSourceNode = null;
+    }
+
+    if (gainNode) {
+        log("Disconnecting gainNode");
+        gainNode.disconnect();
+        gainNode = null;
+    }
+}
+
+// Callback for dynamically connecting an auio object to
+// an AudioContext via the web audio api.
+
+function connectToAudioContext(audio) {
+    log("Creating audioContext");
+    audioContext = new AudioContext();
+
+    audioContext.addEventListener("sinkchange", function(e) {
+            log(`AudioContext: ${e.type}`);
+        });
+
+    log("Creating audioSourceNode");
+    audioSourceNode = audioContext.createMediaElementSource(audio);
+
+    if (useGainNode) {
+        log("Creating gainNode");
+        gainNode = new GainNode(audioContext);
+
+        log("Connecting audioSourceNode to gainNode");
+        audioSourceNode.connect(gainNode);
+
+        log("Connecting gainNode to audioContext");
+
+        gainNode.connect(audioContext.destination);
+
+        gainNode.gain.value = 1;
+    } else {
+        log("Connecting audioSourceNode to audioContext");
+
+        audioSourceNode.connect(audioContext.destination);
+    }
+
+
+    return audioContext;
+}
+
+function resetAudioContext() {
+    if (audioContext) {
+        let curTime = audio.currentTime;
+        audioContext.suspend();
+        audioSourceNode.disconnect(audioContext.destination);
+        audioSourceNode = null;
+        initAudio();
+        audioSourceNode = audioContext.createMediaElementSource(audio);
+        audioSourceNode.connect(audioContext.destination);
+        audio.currentTime = curTime;
+        audioContext.resume();
+    }
+}
+
+document.getElementById("play-btn")
+    .addEventListener("click", function(e) {
+            if (audioContext) {
+                audioContext.resume();
+            }
+            audio.play();
+        });
+
+document.getElementById("pause-btn")
+    .addEventListener("click", function(e) {
+            if (audioContext) {
+                audioContext.resume();
+            }
+            audio.pause();
+        });
+
+document.getElementById("resetcontext-btn")
+    .addEventListener("click", function(e) {
+            resetAudioContext();
+        });
+
+resetAudio();
+
+window.addEventListener("visibilitychange", e => {
+    if (document.visibilityState === "visible") {
+        /*
+        audioContext.suspend();
+        audioSourceNode.disconnect(audioContext.destination);
+        audioContext.close();
+        audioSourceNode = null;
+        audioContext = new AudioContext();
+        audioSourceNode = audioContext.createMediaElementSource(audio);
+        audioSourceNode.connect(audioContext.destination);
+        */
+       // resetAudioContext();
+    }
+});
+
+</script>
+</body>
+</html>
