@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta name = "viewport" content = "width = device-width">
+<style>
+button {
+    font-size: 20px;
+}
+</style>
+</head>
+<body>
+<p>Steps to reproduce:</p>
+<ol>
+    <li>Press "Play". It's a voice saying "one, two, three, four"</li>
+    <li>Press the "Pause" button before the word "four"</li>
+    <li>Press the "Seek to start" button</li>
+    <li>Press "Play"</li>
+</ol>
+<p>Results: when playback begins on Step 4, you briefly hear "four"</p>
+<p><button id="play-btn" type="button">Play</button> <button id="pause-btn" type="button">Pause</button></p>
+<button id="seek-start" type="button">Seek to start</button>
+<p id="outputP"></p>
+<script>
+
+function log(msg) {
+    console.log("%c"+msg, "color:white;background-color:black;padding:.5em;");
+    document.getElementById("outputP").innerText = msg;
+}
+
+let audio;
+let audioContext;
+let audioSourceNode;
+
+function initAudio() {
+    audio = document.createElement("audio");
+    audio.preload = "auto";
+    audio.src = "1-2-3-4.m4a";
+    audio.crossOrigin = "anonymous";
+
+    // Set up some event listeners on the audio object so we can
+    // see in the console what events it is dispatching at any given time.
+    [
+    "abort",
+    "canplay",
+    "canplaythrough",
+    "durationchange",
+    "emptied",
+    "encrypted",
+    "ended",
+    "error",
+    "loadeddata",
+    "loadedmetadata",
+    "loadstart",
+    "pause",
+    "play",
+    "playing",
+    "progress",
+    "ratechange",
+    "seeked",
+    "seeking",
+    "stalled",
+    "suspend",
+    "timeupdate",
+    "volumechange",
+    "waiting",
+    ].forEach(function(eventName) {
+            audio.addEventListener(eventName, function(e) {
+                    log(`Audio: ${e.type} [${e.target.currentTime}]`);
+                });
+        });
+
+    audioContext = new AudioContext();
+    audioSourceNode = audioContext.createMediaElementSource(audio);
+    audioSourceNode.connect(audioContext.destination);
+}
+
+function play() {
+    if (!audio.paused) return;
+    if (audioContext.state !== "running") audioContext.resume();
+    audio.play();
+}
+
+function pause() {
+    if (audio.paused) return;
+    audio.pause();
+}
+
+function seekTo(loc) {
+    let wasPlaying = !audio.paused;
+    if (wasPlaying) {
+        audio.pause();
+    }
+    audio.currentTime = loc;
+    if (wasPlaying) {
+        audio.play();
+    }
+}
+
+document.getElementById("play-btn")
+    .addEventListener("click", function(e) {
+            play();
+        });
+
+document.getElementById("pause-btn")
+    .addEventListener("click", function(e) {
+            pause();
+        });
+
+document.getElementById("seek-start")
+    .addEventListener("click", function(e) {
+            seekTo(0);
+        });
+
+initAudio();
+</script>
+</body>
+</html>
